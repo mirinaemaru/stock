@@ -121,6 +121,7 @@
     </div>
     
     <script>
+        // baseLayout.html의 JavaScript 함수들
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.getElementById('menuToggleBtn');
@@ -173,11 +174,12 @@
             }
         }
         
-        function toggleMenu(element) {
-            const menuItem = element.parentElement;
-            menuItem.classList.toggle('expanded');
-        }
+        // 페이지 로드 시 sidebar 상태 복원
+        document.addEventListener('DOMContentLoaded', function() {
+            restoreSidebarState();
+        });
         
+        // stockList.html 전용 함수들
         function toggleGubunList() {
             const list = document.getElementById('gubun-list');
             list.style.display = list.style.display === 'none' ? 'block' : 'none';
@@ -196,7 +198,6 @@
         
         // 페이지 로드 시 선택된 항목 표시
         document.addEventListener('DOMContentLoaded', function() {
-            restoreSidebarState();
             // URL 파라미터에서 gubun 확인
             const urlParams = new URLSearchParams(window.location.search);
             const gubunParams = urlParams.getAll('gubun');

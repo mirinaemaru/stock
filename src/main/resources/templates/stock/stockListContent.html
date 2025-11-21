@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+<!-- stockList 본문 내용 fragment -->
+<div th:fragment="stockListContent">
+    <!-- 고정 영역: welcome-card와 검색 영역 -->
+    <div class="fixed-header-section">
+            <div class="welcome-card">
+                <h3 style="display: inline-block; margin-right: 15px;">주식 목록</h3>
+                <span style="font-size: 1em;">등록된 주식 목록을 조회할 수 있습니다. 
+                   (전체 <span th:text="${totalCount != null ? #numbers.formatInteger(totalCount, 0, 'COMMA') : 0}">0</span>건, 
+                    표시 <span id="display-count" th:text="${displayCount != null ? #numbers.formatInteger(displayCount, 0, 'COMMA') : 0}">0</span>건)
+                </span>
+                
+                <!-- 검색 영역 -->
+                <div class="search-container" style="background: transparent; padding: 0; margin-top: 15px; box-shadow: none;">
+                    <form th:action="@{/stock/list}" method="get" id="search-form" onsubmit="saveSidebarState()" style="display: flex; gap: 10px; align-items: center;">
+                <div class="keyword-input-container" style="flex: 1; position: relative;">
+                    <input type="text" 
+                           id="keyword-input"
+                           name="keyword" 
+                           th:value="${keyword != null ? keyword : ''}"
+                           placeholder="주식 코드 또는 주식 이름을 입력하세요" 
+                           oninput="toggleClearButton()"
+                           style="width: 100%; padding: 10px 40px 10px 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 1em; box-sizing: border-box;">
+                    <button type="button" 
+                            id="clear-keyword-btn"
+                            onclick="clearKeyword()"
+                            style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #999; cursor: pointer; font-size: 1.2em; padding: 0; width: 20px; height: 20px; line-height: 20px; text-align: center;"
+                            onmouseover="this.style.color='#333'"
+                            onmouseout="this.style.color='#999'">
+                        ×
+                    </button>
+                </div>
+                <div class="gubun-select-container" style="position: relative;">
+                    <div class="gubun-display" 
+                         onclick="toggleGubunList()"
+                         style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 1em; min-width: 200px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: space-between; color: #333;">
+                        <span class="gubun-selected-text" style="color: #333;">구분 선택</span>
+                        <span style="font-size: 0.8em; color: #333;">▼</span>
+                    </div>
+                    <div id="gubun-list" class="gubun-list" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); z-index: 1000;">
+                        <label style="display: block; padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #eee; color: #333;">
+                            <input type="checkbox" 
+                                   name="gubun" 
+                                   value="KOSPI" 
+                                   th:checked="${selectedGubuns == null || selectedGubuns.contains('KOSPI')}"
+                                   onchange="updateGubunDisplay()">
+                            <span style="margin-left: 8px; color: #333;">KOSPI</span>
+                        </label>
+                        <label style="display: block; padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #eee; color: #333;">
+                            <input type="checkbox" 
+                                   name="gubun" 
+                                   value="KOSDAQ" 
+                                   th:checked="${selectedGubuns == null || selectedGubuns.contains('KOSDAQ')}"
+                                   onchange="updateGubunDisplay()">
+                            <span style="margin-left: 8px; color: #333;">KOSDAQ</span>
+                        </label>
+                        <label style="display: block; padding: 10px 15px; cursor: pointer; color: #333;">
+                            <input type="checkbox" 
+                                   name="gubun" 
+                                   value="상해B" 
+                                   th:checked="${selectedGubuns != null && selectedGubuns.contains('상해B')}"
+                                   onchange="updateGubunDisplay()">
+                            <span style="margin-left: 8px; color: #333;">상해B</span>
+                        </label>
+                    </div>
+                </div>
+                <button type="submit" 
+                        style="padding: 10px 30px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; font-weight: 500;">
+                        검색
+                    </button>
+                    </form>
+                </div>
+            </div>
+    </div>
+
+    <!-- 스크롤 가능한 목록 영역 -->
+    <div class="scrollable-list-section">
+            <div class="stock-table-container">
+            <table class="stock-table">
+                <thead>
+                    <tr>
+                        <th>구분</th>
+                        <th>주식명(코드)</th>
+                        <th>사용 여부</th>
+                    </tr>
+                </thead>
+                <tbody id="stock-tbody">
+                    <tr th:if="${stocks == null || #lists.isEmpty(stocks)}">
+                        <td colspan="3" class="text-center">등록된 주식이 없습니다.</td>
+                    </tr>
+                    <tr th:if="${stocks != null && !#lists.isEmpty(stocks)}" th:each="stock : ${stocks}">
+                        <td th:text="${stock?.gubun}">KOSPI</td>
+                        <td th:text="${stock?.name != null ? stock.name + '(' + (stock?.code != null ? stock.code : '') + ')' : ''}">동화약품(000020)</td>
+                        <td>
+                            <span th:if="${stock?.useYn == 'Y'}" class="badge badge-success">사용</span>
+                            <span th:if="${stock?.useYn != 'Y'}" class="badge badge-danger">미사용</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+    </div>
+</div>
+
+<th:block th:fragment="stockListScript">
+<script>
+    function toggleGubunList() {
+        const list = document.getElementById('gubun-list');
+        list.style.display = list.style.display === 'none' ? 'block' : 'none';
+    }
+    
+    function updateGubunDisplay() {
+        const checkboxes = document.querySelectorAll('input[name="gubun"]:checked');
+        const displayText = document.querySelector('.gubun-selected-text');
+        if (checkboxes.length === 0) {
+            displayText.textContent = '구분 선택';
+        } else {
+            const selected = Array.from(checkboxes).map(cb => cb.nextElementSibling.textContent.trim()).join(', ');
+            displayText.textContent = selected;
+        }
+    }
+    
+    // 페이지 로드 시 선택된 항목 표시
+    document.addEventListener('DOMContentLoaded', function() {
+        // URL 파라미터에서 gubun 확인
+        const urlParams = new URLSearchParams(window.location.search);
+        const gubunParams = urlParams.getAll('gubun');
+        
+        // URL에 gubun 파라미터가 없으면 초기 로드로 간주하여 기본값 설정
+        // URL에 gubun 파라미터가 있으면 사용자가 선택한 값이므로 그대로 사용
+        if (gubunParams.length === 0) {
+            // 초기 로드 시 기본값으로 KOSPI, KOSDAQ이 선택되어 있지 않으면 체크
+            const kospiCheckbox = document.querySelector('input[name="gubun"][value="KOSPI"]');
+            const kosdaqCheckbox = document.querySelector('input[name="gubun"][value="KOSDAQ"]');
+            
+            if (kospiCheckbox && !kospiCheckbox.checked) {
+                kospiCheckbox.checked = true;
+            }
+            if (kosdaqCheckbox && !kosdaqCheckbox.checked) {
+                kosdaqCheckbox.checked = true;
+            }
+        }
+        
+        updateGubunDisplay();
+        toggleClearButton();
+        
+        // 검색 폼 제출 시 무한 스크롤 초기화는 페이지 리로드로 자동 처리됨
+    });
+    
+    // 검색어 입력 시 X 버튼 표시/숨김
+    function toggleClearButton() {
+        const input = document.getElementById('keyword-input');
+        const clearBtn = document.getElementById('clear-keyword-btn');
+        if (input.value.trim().length > 0) {
+            clearBtn.style.display = 'block';
+        } else {
+            clearBtn.style.display = 'none';
+        }
+    }
+    
+    // 검색어 지우기
+    function clearKeyword() {
+        const input = document.getElementById('keyword-input');
+        input.value = '';
+        toggleClearButton();
+        input.focus();
+    }
+    
+    // 외부 클릭 시 리스트 닫기
+    document.addEventListener('click', function(event) {
+        const container = document.querySelector('.gubun-select-container');
+        if (container && !container.contains(event.target)) {
+            document.getElementById('gubun-list').style.display = 'none';
+        }
+    });
+    
+    // 무한 스크롤 구현
+    let isLoading = false;
+    let hasMore = true;
+    let currentOffset = 100; // 초기 100개는 이미 로드됨
+    const pageSize = 100;
+    
+    function loadMoreStocks() {
+        if (isLoading || !hasMore) {
+            return;
+        }
+        
+        isLoading = true;
+        const keyword = document.querySelector('input[name="keyword"]').value || '';
+        const gubunCheckboxes = document.querySelectorAll('input[name="gubun"]:checked');
+        const gubunList = Array.from(gubunCheckboxes).map(cb => cb.value);
+        
+        // URL 파라미터 구성
+        let url = '/stock/list/loadMore?offset=' + currentOffset;
+        if (keyword) {
+            url += '&keyword=' + encodeURIComponent(keyword);
+        }
+        gubunList.forEach(gubun => {
+            url += '&gubun=' + encodeURIComponent(gubun);
+        });
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.stocks && data.stocks.length > 0) {
+                    const tbody = document.getElementById('stock-tbody');
+                    const emptyRow = tbody.querySelector('td.text-center');
+                    if (emptyRow) {
+                        emptyRow.parentElement.remove();
+                    }
+                    
+                    data.stocks.forEach(stock => {
+                        const row = document.createElement('tr');
+                        const nameCode = (stock.name || '') + '(' + (stock.code || '') + ')';
+                        row.innerHTML = `
+                            <td>${stock.gubun || ''}</td>
+                            <td>${nameCode}</td>
+                            <td>
+                                <span class="badge ${stock.useYn === 'Y' ? 'badge-success' : 'badge-danger'}">
+                                    ${stock.useYn === 'Y' ? '사용' : '미사용'}
+                                </span>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                    
+                    // 표시 건수 업데이트
+                    const currentDisplayCount = parseInt(document.getElementById('display-count').textContent.replace(/,/g, '')) + data.stocks.length;
+                    document.getElementById('display-count').textContent = currentDisplayCount.toLocaleString();
+                    
+                    currentOffset += data.stocks.length;
+                    hasMore = data.hasMore;
+                } else {
+                    hasMore = false;
+                }
+                isLoading = false;
+            })
+            .catch(error => {
+                console.error('데이터 로드 오류:', error);
+                isLoading = false;
+            });
+    }
+    
+    // 스크롤 이벤트 리스너 (스크롤 가능한 목록 영역에 적용)
+    const scrollableSection = document.querySelector('.scrollable-list-section');
+    if (scrollableSection) {
+        scrollableSection.addEventListener('scroll', function() {
+            const scrollTop = scrollableSection.scrollTop;
+            const scrollHeight = scrollableSection.scrollHeight;
+            const clientHeight = scrollableSection.clientHeight;
+            
+            // 스크롤이 끝에서 100px 이내에 도달하면 다음 데이터 로드
+            if (scrollTop + clientHeight >= scrollHeight - 100) {
+                loadMoreStocks();
+            }
+        });
+    }
+</script>
+</th:block>
+
+<th:block th:fragment="stockListStyle">
+<style>
+    .stock-table-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .stock-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .stock-table thead {
+        background: rgba(44, 62, 80, 0.5);
+        color: white;
+    }
+
+    .stock-table th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.9em;
+    }
+
+    .stock-table tbody tr {
+        border-bottom: 1px solid #e0e0e0;
+        transition: background 0.2s;
+    }
+
+    .stock-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .stock-table tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .stock-table td {
+        padding: 12px 15px;
+        color: #333;
+    }
+
+    .stock-table .text-center {
+        text-align: center;
+        color: #999;
+        padding: 30px;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+
+    .badge-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .badge-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .search-container button:hover {
+        background: #2980b9;
+    }
+
+    .search-container button:active {
+        background: #21618c;
+    }
+
+    .search-container input:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
+</style>
+</th:block>
+</body>
+</html>
