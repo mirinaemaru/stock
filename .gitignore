@@ -41,3 +41,6 @@ Thumbs.db
 *.mv.db
 *.trace.db
 
+# Application Properties (민감한 정보 포함)
+src/main/resources/application.properties
+

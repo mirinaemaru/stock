@@ -85,12 +85,19 @@ CREATE DATABASE IF NOT EXISTS stockdb CHARACTER SET utf8mb4 COLLATE utf8mb4_unic
 ```
 
 ### 설정 변경
-`src/main/resources/application.properties` 파일에서 데이터베이스 연결 정보를 수정할 수 있습니다:
-```properties
-spring.datasource.url=jdbc:mariadb://localhost:3306/stockdb?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul
-spring.datasource.username=your_username
-spring.datasource.password=your_password
-```
+1. `src/main/resources/application.properties.example` 파일을 복사하여 `application.properties` 파일을 생성합니다:
+   ```bash
+   cp src/main/resources/application.properties.example src/main/resources/application.properties
+   ```
+
+2. `application.properties` 파일에서 데이터베이스 연결 정보를 수정합니다:
+   ```properties
+   spring.datasource.url=jdbc:mariadb://localhost:3306/stock?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul
+   spring.datasource.username=your_username
+   spring.datasource.password=your_password
+   ```
+
+**주의**: `application.properties` 파일은 Git에 포함되지 않습니다. 각 개발자는 자신의 환경에 맞게 설정 파일을 생성해야 합니다.
 
 ## MyBatis 사용법
 
