@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>리포트 - Stock Management System</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div class="layout">
+        <!-- 좌측 메뉴 영역 -->
+        <div th:replace="~{layout/menu :: menu}"></div>
+        
+        <!-- 메뉴 토글 버튼 -->
+        <div class="menu-toggle-container" onclick="toggleSidebar()" id="menuToggleContainer" title="메뉴 열기/닫기">
+            <button class="menu-toggle-btn" id="menuToggleBtn">◀</button>
+        </div>
+        
+        <!-- 우측 내용 영역 -->
+        <div class="content-area">
+            <div class="content-header">
+                <h2 id="content-title">리포트</h2>
+            </div>
+            
+            <div class="content-body" id="content-body">
+                <div class="welcome-card">
+                    <h3>리포트</h3>
+                    <p>주식 관련 리포트를 확인할 수 있습니다.</p>
+                </div>
+
+                <div class="info-card">
+                    <h4>리포트 기능</h4>
+                    <p>이 기능은 추후 구현될 예정입니다.</p>
+                    <p>다양한 주식 리포트를 생성하고 조회할 수 있는 기능이 제공됩니다.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('menuToggleBtn');
+            const toggleContainer = document.getElementById('menuToggleContainer');
+            
+            sidebar.classList.toggle('collapsed');
+            
+            // 버튼 위치 및 아이콘 변경
+            if (sidebar.classList.contains('collapsed')) {
+                toggleContainer.style.left = '0px';
+                toggleBtn.innerHTML = '▶';
+                toggleContainer.title = '메뉴 열기';
+            } else {
+                toggleContainer.style.left = '280px';
+                toggleBtn.innerHTML = '◀';
+                toggleContainer.title = '메뉴 닫기';
+            }
+        }
+        
+        function toggleMenu(element) {
+            const menuItem = element.parentElement;
+            menuItem.classList.toggle('expanded');
+        }
+    </script>
+</body>
+</html>

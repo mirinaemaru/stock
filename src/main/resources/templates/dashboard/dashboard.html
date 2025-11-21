@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대시보드 - Stock Management System</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div class="layout">
+        <!-- 좌측 메뉴 영역 -->
+        <div th:replace="~{layout/menu :: menu}"></div>
+        
+        <!-- 메뉴 토글 버튼 -->
+        <div class="menu-toggle-container" onclick="toggleSidebar()" id="menuToggleContainer" title="메뉴 열기/닫기">
+            <button class="menu-toggle-btn" id="menuToggleBtn">◀</button>
+        </div>
+        
+        <!-- 우측 내용 영역 -->
+        <div class="content-area">
+            <div class="content-header">
+                <h2 id="content-title">대시보드</h2>
+            </div>
+            
+            <div class="content-body" id="content-body">
+                <div class="welcome-card">
+                    <h3>Stock Management System</h3>
+                    <p>주식 관리 시스템에 오신 것을 환영합니다!</p>
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-card">
+                        <h4>📊 시스템 상태</h4>
+                        <p>정상 실행 중</p>
+                    </div>
+                    <div class="info-card">
+                        <h4>🌐 서버 포트</h4>
+                        <p>9090</p>
+                    </div>
+                    <div class="info-card">
+                        <h4>💾 데이터베이스</h4>
+                        <p>MariaDB 연결됨</p>
+                    </div>
+                    <div class="info-card">
+                        <h4>🔧 프레임워크</h4>
+                        <p>Spring Boot 2.7.18</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('menuToggleBtn');
+            const toggleContainer = document.getElementById('menuToggleContainer');
+            
+            sidebar.classList.toggle('collapsed');
+            
+            // 버튼 위치 및 아이콘 변경
+            if (sidebar.classList.contains('collapsed')) {
+                toggleContainer.style.left = '0px';
+                toggleBtn.innerHTML = '▶';
+                toggleContainer.title = '메뉴 열기';
+            } else {
+                toggleContainer.style.left = '280px';
+                toggleBtn.innerHTML = '◀';
+                toggleContainer.title = '메뉴 닫기';
+            }
+        }
+        
+        function toggleMenu(element) {
+            const menuItem = element.parentElement;
+            menuItem.classList.toggle('expanded');
+        }
+    </script>
+</body>
+</html>

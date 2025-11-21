@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.stock.mapper.StockMapper">
+    
+    <!-- 현재 시간 조회 (MariaDB) -->
+    <select id="getCurrentTime" resultType="String">
+        /* Stock.getCurrentTime */
+        SELECT NOW()
+    </select>
+    
+    <!-- 주식 목록 조회 -->
+    <select id="findAll" resultMap="StockResultMap">
+        /* Stock.findAll */
+        SELECT 
+            CODE
+            , NAME
+            , GUBUN
+            , USE_YN
+        FROM stock
+        WHERE USE_YN = 'Y'
+        ORDER BY CODE
+    </select>
+    
+    <!-- 주식 목록 조회 (페이징) -->
+    <select id="findAllWithPaging" resultMap="StockResultMap">
+        /* Stock.findAllWithPaging */
+        SELECT 
+            CODE
+            , NAME
+            , GUBUN
+            , USE_YN
+        FROM stock
+        WHERE USE_YN = 'Y'
+        ORDER BY CODE
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+    
+    <!-- 전체 주식 개수 조회 -->
+    <select id="countAll" resultType="int">
+        /* Stock.countAll */
+        SELECT COUNT(*)
+        FROM stock
+        WHERE USE_YN = 'Y'
+    </select>
+    
+    <!-- Stock 결과 매핑 -->
+    <resultMap id="StockResultMap" type="Stock">
+        <result property="code" column="CODE"/>
+        <result property="name" column="NAME"/>
+        <result property="gubun" column="GUBUN"/>
+        <result property="useYn" column="USE_YN"/>
+    </resultMap>
+    
+    <!-- 주식 코드로 조회 -->
+    <select id="findByCode" parameterType="String" resultMap="StockResultMap">
+        /* Stock.findByCode */
+        SELECT 
+            CODE
+            , NAME
+            , GUBUN
+            , USE_YN
+        FROM stock
+        WHERE CODE = #{code}
+    </select>
+    
+    <!-- 주식 코드 또는 이름으로 검색 -->
+    <select id="findByCodeOrName" parameterType="String" resultMap="StockResultMap">
+        /* Stock.findByCodeOrName */
+        SELECT 
+            CODE
+            , NAME
+            , GUBUN
+            , USE_YN
+        FROM stock
+        WHERE USE_YN = 'Y'
+          AND (CODE LIKE CONCAT('%', #{keyword}, '%')
+           OR NAME LIKE CONCAT('%', #{keyword}, '%'))
+        ORDER BY CODE
+    </select>
+    
+    <!-- 구분으로 필터링 -->
+    <select id="findByGubun" resultMap="StockResultMap">
+        /* Stock.findByGubun */
+        SELECT 
+            CODE
+            , NAME
+            , GUBUN
+            , USE_YN
+        FROM stock
+        WHERE USE_YN = 'Y'
+          AND GUBUN IN
+        <foreach collection="gubunList" item="gubun" open="(" separator="," close=")">
+            #{gubun}
+        </foreach>
+        ORDER BY CODE
+    </select>
+    
+    <!-- 주식 코드 또는 이름과 구분으로 검색 -->
+    <select id="findByCodeOrNameAndGubun" resultMap="StockResultMap">
+        /* Stock.findByCodeOrNameAndGubun */
+        SELECT 
+            CODE
+            , NAME
+            , GUBUN
+            , USE_YN
+        FROM stock
+        WHERE USE_YN = 'Y'
+          AND (CODE LIKE CONCAT('%', #{keyword}, '%')
+           OR NAME LIKE CONCAT('%', #{keyword}, '%'))
+          AND GUBUN IN
+        <foreach collection="gubunList" item="gubun" open="(" separator="," close=")">
+            #{gubun}
+        </foreach>
+        ORDER BY CODE
+    </select>
+    
+    <!-- 구분으로 필터링 (페이징) -->
+    <select id="findByGubunWithPaging" resultMap="StockResultMap">
+        /* Stock.findByGubunWithPaging */
+        SELECT 
+            CODE
+            , NAME
+            , GUBUN
+            , USE_YN
+        FROM stock
+        WHERE USE_YN = 'Y'
+          AND GUBUN IN
+        <foreach collection="gubunList" item="gubun" open="(" separator="," close=")">
+            #{gubun}
+        </foreach>
+        ORDER BY CODE
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+    
+    <!-- 주식 코드 또는 이름과 구분으로 검색 (페이징) -->
+    <select id="findByCodeOrNameAndGubunWithPaging" resultMap="StockResultMap">
+        /* Stock.findByCodeOrNameAndGubunWithPaging */
+        SELECT 
+            CODE
+            , NAME
+            , GUBUN
+            , USE_YN
+        FROM stock
+        WHERE USE_YN = 'Y'
+          AND (CODE LIKE CONCAT('%', #{keyword}, '%')
+           OR NAME LIKE CONCAT('%', #{keyword}, '%'))
+          AND GUBUN IN
+        <foreach collection="gubunList" item="gubun" open="(" separator="," close=")">
+            #{gubun}
+        </foreach>
+        ORDER BY CODE
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+    
+    <!-- 구분으로 필터링된 총 개수 -->
+    <select id="countByGubun" resultType="int">
+        /* Stock.countByGubun */
+        SELECT COUNT(*)
+        FROM stock
+        WHERE USE_YN = 'Y'
+          AND GUBUN IN
+        <foreach collection="gubunList" item="gubun" open="(" separator="," close=")">
+            #{gubun}
+        </foreach>
+    </select>
+    
+    <!-- 주식 코드 또는 이름과 구분으로 검색된 총 개수 -->
+    <select id="countByCodeOrNameAndGubun" resultType="int">
+        /* Stock.countByCodeOrNameAndGubun */
+        SELECT COUNT(*)
+        FROM stock
+        WHERE USE_YN = 'Y'
+          AND (CODE LIKE CONCAT('%', #{keyword}, '%')
+           OR NAME LIKE CONCAT('%', #{keyword}, '%'))
+          AND GUBUN IN
+        <foreach collection="gubunList" item="gubun" open="(" separator="," close=")">
+            #{gubun}
+        </foreach>
+    </select>
+    
+</mapper>
+

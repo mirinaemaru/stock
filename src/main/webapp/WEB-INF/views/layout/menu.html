@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div th:fragment="menu" class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h1>📊 Stock System</h1>
+        </div>
+        
+        <div class="menu-tree">
+            <div class="menu-item expanded">
+                <div class="menu-label" onclick="toggleMenu(this)">
+                    <span class="menu-icon">📈</span>
+                    <span>주식 관리</span>
+                    <span class="menu-arrow">▶</span>
+                </div>
+                <div class="menu-children">
+                    <a th:href="@{/dashboard}" class="menu-child" th:classappend="${#httpServletRequest.requestURI == '/dashboard' ? 'active' : ''}">대시보드</a>
+                    <a th:href="@{/stock/list}" class="menu-child" th:classappend="${#httpServletRequest.requestURI == '/stock/list' ? 'active' : ''}">주식 목록</a>
+                    <a th:href="@{/stock/add}" class="menu-child" th:classappend="${#httpServletRequest.requestURI == '/stock/add' ? 'active' : ''}">주식 등록</a>
+                </div>
+            </div>
+            
+            <div class="menu-item">
+                <div class="menu-label" onclick="toggleMenu(this)">
+                    <span class="menu-icon">📊</span>
+                    <span>분석</span>
+                    <span class="menu-arrow">▶</span>
+                </div>
+                <div class="menu-children">
+                    <a th:href="@{/analysis}" class="menu-child" th:classappend="${#httpServletRequest.requestURI == '/analysis' ? 'active' : ''}">차트 분석</a>
+                    <a th:href="@{/reports}" class="menu-child" th:classappend="${#httpServletRequest.requestURI == '/reports' ? 'active' : ''}">리포트</a>
+                </div>
+            </div>
+            
+            <div class="menu-item">
+                <div class="menu-label" onclick="toggleMenu(this)">
+                    <span class="menu-icon">⚙️</span>
+                    <span>설정</span>
+                    <span class="menu-arrow">▶</span>
+                </div>
+                <div class="menu-children">
+                    <a th:href="@{/settings}" class="menu-child" th:classappend="${#httpServletRequest.requestURI == '/settings' ? 'active' : ''}">시스템 설정</a>
+                    <a th:href="@{/users}" class="menu-child" th:classappend="${#httpServletRequest.requestURI == '/users' ? 'active' : ''}">사용자 관리</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

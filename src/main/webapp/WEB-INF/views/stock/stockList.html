@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/baseLayout}">
+<head>
+    <title>주식 목록</title>
+</head>
+<body>
+    <div layout:fragment="header-title">주식 목록</div>
+    <div layout:fragment="content">
+        <div class="welcome-card">
+            <h3>주식 목록</h3>
+            <p>등록된 주식 목록을 조회할 수 있습니다. (총 <span th:text="${#lists.size(stocks)}">0</span>건)</p>
+        </div>
+
+        <div class="stock-table-container">
+            <table class="stock-table">
+                <thead>
+                    <tr>
+                        <th>번호</th>
+                        <th>주식 코드</th>
+                        <th>주식 이름</th>
+                        <th>구분</th>
+                        <th>사용 여부</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${#lists.isEmpty(stocks)}">
+                        <td colspan="5" class="text-center">등록된 주식이 없습니다.</td>
+                    </tr>
+                    <tr th:each="stock, iterStat : ${stocks}">
+                        <td th:text="${iterStat.count}">1</td>
+                        <td th:text="${stock.code}">000020</td>
+                        <td th:text="${stock.name}">동화약품</td>
+                        <td th:text="${stock.gubun}">KOSPI</td>
+                        <td>
+                            <span th:if="${stock.useYn == 'Y'}" class="badge badge-success">사용</span>
+                            <span th:if="${stock.useYn != 'Y'}" class="badge badge-danger">미사용</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <style>
+        .stock-table-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .stock-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .stock-table thead {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .stock-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .stock-table tbody tr {
+            border-bottom: 1px solid #e0e0e0;
+            transition: background 0.2s;
+        }
+
+        .stock-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .stock-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .stock-table td {
+            padding: 12px 15px;
+            color: #333;
+        }
+
+        .stock-table .text-center {
+            text-align: center;
+            color: #999;
+            padding: 30px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .badge-danger {
+            background: #dc3545;
+            color: white;
+        }
+    </style>
+</body>
+</html>
+
