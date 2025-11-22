@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    
+    <!-- 콘솔 출력 설정 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p %logger{36} --- [%t] %m%n</pattern>
+            <!-- 로그 출력 길이 제한 해제 (기본값은 없음, 필요시 설정) -->
+            <!-- maxLength 속성은 없지만, 실제로는 JVM이나 터미널 설정에 따라 제한될 수 있음 -->
+        </encoder>
+    </appender>
+    
+    <!-- 파일 출력 설정 (선택사항) -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/stock-application.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/stock-application-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p %logger{36} --- [%t] %m%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- 루트 로거 설정 -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+    
+    <!-- 애플리케이션 패키지 로깅 레벨 -->
+    <logger name="com.stock" level="DEBUG"/>
+    <logger name="org.springframework.web" level="DEBUG"/>
+    <logger name="com.stock.mapper" level="DEBUG"/>
+    <logger name="org.apache.ibatis" level="DEBUG"/>
+    
+    <!-- Spring Boot 기본 로거 -->
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="org.thymeleaf" level="WARN"/>
+</configuration>
+
+

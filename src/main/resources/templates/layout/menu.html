@@ -21,11 +21,10 @@
             </div>
             
             <div class="menu-item">
-                <div class="menu-label" onclick="toggleMenu(this)">
+                <a th:href="@{/analysis}" class="menu-label" th:classappend="${#httpServletRequest.requestURI == '/stock/analysis' ? 'active' : ''}">
                     <span class="menu-icon">📊</span>
                     <span>분석</span>
-                    <span class="menu-arrow">▶</span>
-                </div>
+                </a>
                 <div class="menu-children">
                     <a th:href="@{/analysis}" class="menu-child" th:classappend="${#httpServletRequest.requestURI == '/analysis' ? 'active' : ''}">차트 분석</a>
                     <a th:href="@{/reports}" class="menu-child" th:classappend="${#httpServletRequest.requestURI == '/reports' ? 'active' : ''}">리포트</a>
@@ -46,21 +45,6 @@
         </div>
     </div>
     
-    <style>
-        .menu-child {
-            text-decoration: none;
-            color: white;
-            display: block;
-        }
-        .menu-child:hover {
-            text-decoration: none;
-            color: white;
-        }
-        .menu-child.active {
-            background: #3498db;
-            border-left: 3px solid #2980b9;
-        }
-    </style>
 </body>
 </html>
 

@@ -2,6 +2,7 @@ package com.stock.controller;
 
 import com.stock.mapper.StockMapper;
 import com.stock.model.Stock;
+import com.stock.service.StockDataService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,9 @@ public class StockController {
 
     @Autowired
     private StockMapper stockMapper;
+    
+    @Autowired
+    private StockDataService stockDataService;
 
     @GetMapping("/")
     public String index() {
@@ -141,9 +145,20 @@ public class StockController {
         return "stock/stockAdd";
     }
 
-    @GetMapping("/analysis")
+    @GetMapping("/stock/analysis")
     public String analysis() {
         return "analysis/analysis";
+    }
+    
+    /**
+     * 주식 데이터를 가져오는 API 엔드포인트
+     */
+    @GetMapping("/api/stock/data")
+    @ResponseBody
+    public Map<String, Object> getStockData(@RequestParam String stockCode,
+                                            @RequestParam(defaultValue = "KRX") String exchange) {
+        logger.info("주식 데이터 요청: 종목코드={}, 거래소={}", stockCode, exchange);
+        return stockDataService.getStockData(stockCode, exchange);
     }
 
     @GetMapping("/reports")

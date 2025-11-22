@@ -16,28 +16,52 @@
             <button class="menu-toggle-btn" id="menuToggleBtn">◀</button>
         </div>
         
-        <!-- 우측 내용 영역 -->
-        <div class="content-area">
-            <div class="content-header">
-                <h2 id="content-title">차트 분석</h2>
+        <!-- 내용 영역 -->
+        <div class="content-area" id="content-body">
+            <!-- 고정 영역: welcome-card와 검색 영역 -->
+            <div class="fixed-header-section">
+                    <div class="welcome-card">
+                        <h3 style="display: inline-block; margin-right: 15px;">차트 분석</h3>
+                        <span style="font-size: 1em;">주식 차트를 분석할 수 있습니다.</span>
+                        
+                        <!-- 주식 선택 영역 -->
+                        <div class="search-container" style="background: transparent; padding: 0; margin-top: 15px; box-shadow: none;">
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 200px;">
+                                    <input type="text" 
+                                           id="stock-code-input" 
+                                           placeholder="예: 005930 (삼성전자)" 
+                                           style="width: 100%; padding: 10px 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 1em; box-sizing: border-box;"
+                                           onkeypress="if(event.key === 'Enter') loadChart()">
+                                </div>
+                                <div style="position: relative; min-width: 200px;">
+                                    <select id="exchange-select" 
+                                            style="width: 100%; padding: 10px 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 1em; box-sizing: border-box; background: white; cursor: pointer;">
+                                        <option value="KRX">KRX (한국거래소)</option>
+                                        <option value="NASDAQ">NASDAQ</option>
+                                        <option value="NYSE">NYSE</option>
+                                    </select>
+                                </div>
+                                <button onclick="loadChart()" 
+                                        style="padding: 10px 30px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; font-weight: 500; white-space: nowrap;">
+                                    차트 로드
+                                </button>
+                            </div>
+                        </div>
+                    </div>
             </div>
-            
-            <div class="content-body" id="content-body">
-                <div class="welcome-card">
-                    <h3>차트 분석</h3>
-                    <p>주식 차트를 분석할 수 있습니다.</p>
-                </div>
 
-                <div class="info-card">
-                    <h4>차트 분석 기능</h4>
-                    <p>이 기능은 추후 구현될 예정입니다.</p>
-                    <p>주식 차트를 시각화하고 분석할 수 있는 기능이 제공됩니다.</p>
+            <!-- 스크롤 가능한 차트 영역 -->
+            <div class="scrollable-list-section">
+                <div id="tradingview-chart-container" style="background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); padding: 20px; min-height: 600px;">
+                    <div id="tradingview-widget" style="height: 600px;"></div>
                 </div>
             </div>
         </div>
     </div>
     
     <script>
+        // baseLayout.html의 JavaScript 함수들
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.getElementById('menuToggleBtn');
@@ -55,12 +79,193 @@
                 toggleBtn.innerHTML = '◀';
                 toggleContainer.title = '메뉴 닫기';
             }
+            
+            // sidebar 상태를 localStorage에 저장
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        }
+        
+        // sidebar 상태 저장
+        function saveSidebarState() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            }
+        }
+        
+        // sidebar 상태 복원
+        function restoreSidebarState() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('menuToggleBtn');
+            const toggleContainer = document.getElementById('menuToggleContainer');
+            
+            if (sidebar && toggleBtn && toggleContainer) {
+                const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+                if (isCollapsed) {
+                    sidebar.classList.add('collapsed');
+                    toggleContainer.style.left = '0px';
+                    toggleBtn.innerHTML = '▶';
+                    toggleContainer.title = '메뉴 열기';
+                } else {
+                    sidebar.classList.remove('collapsed');
+                    toggleContainer.style.left = '280px';
+                    toggleBtn.innerHTML = '◀';
+                    toggleContainer.title = '메뉴 닫기';
+                }
+            }
         }
         
         function toggleMenu(element) {
             const menuItem = element.parentElement;
             menuItem.classList.toggle('expanded');
         }
+        
+        // 페이지 로드 시 sidebar 상태 복원
+        document.addEventListener('DOMContentLoaded', function() {
+            restoreSidebarState();
+        });
+        
+        // TradingView 차트 관련 함수들
+        let tradingViewWidget = null;
+        
+        function loadChart() {
+            const stockCode = document.getElementById('stock-code-input').value.trim();
+            const exchange = document.getElementById('exchange-select').value;
+            
+            if (!stockCode) {
+                alert('주식 코드를 입력해주세요.');
+                return;
+            }
+            
+            // 로딩 표시
+            const container = document.getElementById('tradingview-widget');
+            container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 600px; color: #666;">데이터를 불러오는 중...</div>';
+            
+            // 외부 API에서 데이터 가져오기
+            fetch(`/api/stock/data?stockCode=${encodeURIComponent(stockCode)}&exchange=${encodeURIComponent(exchange)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.chartData) {
+                        // 데이터를 성공적으로 가져온 경우
+                        console.log('주식 데이터:', data);
+                        
+                        // TradingView 위젯 사용 (기존 방식)
+                        loadTradingViewChart(stockCode, exchange, data);
+                        
+                        // 또는 직접 차트 그리기 (선택사항)
+                        // drawCustomChart(data);
+                    } else {
+                        // 데이터 가져오기 실패 시 TradingView 위젯으로 폴백
+                        console.warn('데이터 가져오기 실패, TradingView 위젯 사용:', data.error);
+                        loadTradingViewChart(stockCode, exchange, null);
+                    }
+                })
+                .catch(error => {
+                    console.error('API 호출 오류:', error);
+                    // 오류 발생 시 TradingView 위젯으로 폴백
+                    loadTradingViewChart(stockCode, exchange, null);
+                });
+        }
+        
+        function loadTradingViewChart(stockCode, exchange, apiData) {
+            // 기존 위젯 제거
+            const container = document.getElementById('tradingview-widget');
+            container.innerHTML = '';
+            
+            // 심볼 구성 (거래소에 따라 다름)
+            let symbol = '';
+            if (exchange === 'KRX') {
+                // 한국 주식: KRX:종목코드 형식 또는 종목코드.KS
+                symbol = 'KRX:' + stockCode;
+            } else if (exchange === 'NASDAQ') {
+                symbol = 'NASDAQ:' + stockCode;
+            } else if (exchange === 'NYSE') {
+                symbol = 'NYSE:' + stockCode;
+            }
+            
+            // 기존 정보 표시 제거
+            const existingInfo = container.parentElement.querySelector('.stock-info-panel');
+            if (existingInfo) {
+                existingInfo.remove();
+            }
+            
+            // API에서 가져온 데이터가 있으면 정보 표시
+            if (apiData && apiData.regularMarketPrice) {
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'stock-info-panel';
+                infoDiv.style.cssText = 'padding: 15px; background: #f8f9fa; border-radius: 8px; margin-bottom: 15px; font-size: 0.9em; box-shadow: 0 1px 3px rgba(0,0,0,0.1);';
+                
+                const currentPrice = apiData.regularMarketPrice;
+                const previousClose = apiData.previousClose || currentPrice;
+                const change = apiData.change !== undefined ? apiData.change : (currentPrice - previousClose);
+                const changePercent = apiData.changePercent !== undefined ? apiData.changePercent.toFixed(2) : 
+                                    (previousClose ? ((change / previousClose) * 100).toFixed(2) : '0.00');
+                const changeColor = change >= 0 ? '#dc3545' : '#0066cc';
+                
+                let infoHTML = `
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center;">
+                        <div><strong>종목명:</strong> ${apiData.symbol || '-'}</div>
+                        <div><strong>종목코드:</strong> ${apiData.stockCode || stockCode}</div>
+                        <div><strong>현재가:</strong> <span style="font-size: 1.1em; font-weight: bold; color: ${changeColor};">${currentPrice.toLocaleString()}</span> ${apiData.currency || 'KRW'}</div>
+                        <div><strong>전일종가:</strong> ${previousClose.toLocaleString()}</div>
+                        <div><strong>등락:</strong> <span style="color: ${changeColor}; font-weight: bold;">${change >= 0 ? '+' : ''}${change.toFixed(0)} (${changePercent >= 0 ? '+' : ''}${changePercent}%)</span></div>
+                `;
+                
+                if (apiData.highPrice) {
+                    infoHTML += `<div><strong>고가:</strong> ${apiData.highPrice.toLocaleString()}</div>`;
+                }
+                if (apiData.lowPrice) {
+                    infoHTML += `<div><strong>저가:</strong> ${apiData.lowPrice.toLocaleString()}</div>`;
+                }
+                if (apiData.volume) {
+                    infoHTML += `<div><strong>거래량:</strong> ${apiData.volume.toLocaleString()}</div>`;
+                }
+                
+                infoHTML += `<div><strong>거래소:</strong> ${apiData.exchangeName || exchange}</div>`;
+                infoHTML += `</div>`;
+                
+                infoDiv.innerHTML = infoHTML;
+                container.parentElement.insertBefore(infoDiv, container);
+            }
+            
+            // TradingView 위젯 생성
+            tradingViewWidget = new TradingView.widget({
+                "autosize": true,
+                "symbol": symbol,
+                "interval": "D",
+                "timezone": "Asia/Seoul",
+                "theme": "light",
+                "style": "1",
+                "locale": "kr",
+                "toolbar_bg": "#f1f3f6",
+                "enable_publishing": false,
+                "allow_symbol_change": true,
+                "container_id": "tradingview-widget",
+                "height": 600,
+                "width": "100%",
+                "hide_side_toolbar": false,
+                "studies": [
+                    "Volume@tv-basicstudies",
+                    "RSI@tv-basicstudies"
+                ],
+                "show_popup_button": true,
+                "popup_width": "1000",
+                "popup_height": "650",
+                "support_host": "https://www.tradingview.com"
+            });
+        }
+        
+        // 기본 차트 로드 (삼성전자)
+        document.addEventListener('DOMContentLoaded', function() {
+            // 기본값 설정
+            document.getElementById('stock-code-input').value = '005930';
+            // 기본 차트 로드
+            setTimeout(() => {
+                loadChart();
+            }, 500);
+        });
     </script>
+    
+    <!-- TradingView Widget 스크립트 -->
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 </body>
 </html>
