@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>코스피 거래일 정보 - Stock Management System</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        .date-display {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+        .stock-table-container {
+            overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        .stock-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        .stock-table thead {
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .stock-table th {
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #dee2e6;
+            white-space: nowrap;
+        }
+        .stock-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e9ecef;
+            color: #555;
+        }
+        .stock-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        .stock-table tbody tr:nth-child(even) {
+            background-color: #ffffff;
+        }
+        .stock-table tbody tr:nth-child(odd) {
+            background-color: #fafafa;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .price-up {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .price-down {
+            color: #0066cc;
+            font-weight: bold;
+        }
+        .price-unchanged {
+            color: #666;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        .badge-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .badge-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .badge-info {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .date-input-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .date-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <!-- 좌측 메뉴 영역 -->
+        <div th:replace="~{layout/menu :: menu}"></div>
+        
+        <!-- 메뉴 토글 버튼 -->
+        <div class="menu-toggle-container" onclick="toggleSidebar()" id="menuToggleContainer" title="메뉴 열기/닫기">
+            <button class="menu-toggle-btn" id="menuToggleBtn">◀</button>
+        </div>
+        
+        <!-- 내용 영역 -->
+        <div class="content-area" id="content-body">
+            <!-- 고정 영역: welcome-card와 검색 영역 -->
+            <div class="fixed-header-section">
+                <div class="welcome-card">
+                    <h3 style="display: inline-block; margin-right: 15px;">코스피 거래일 정보</h3>
+                    <span style="font-size: 1em;">코스피 전체 종목의 거래일 정보를 조회할 수 있습니다.</span>
+                    
+                    <!-- 날짜 선택 영역 -->
+                    <div class="date-input-container">
+                        <form th:action="@{/analysis/kospi-daily}" method="get" style="display: flex; gap: 10px; align-items: center;">
+                            <label for="trading-date" style="font-weight: 500; color: #333;">거래일:</label>
+                            <input type="date" 
+                                   id="trading-date" 
+                                   name="tradingDate"
+                                   th:value="${tradingDate != null ? tradingDate : ''}"
+                                   class="date-input"
+                                   style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9em;">
+                            <button type="submit" class="btn btn-primary">조회</button>
+                            <button type="button" class="btn btn-secondary" onclick="loadTodayData()" style="background: #6c757d; color: white;">오늘</button>
+                        </form>
+                    </div>
+                    
+                    <div class="date-display" th:if="${displayDate != null && !displayDate.isEmpty()}">
+                        거래일: <span th:text="${displayDate.length() == 8 ? displayDate.substring(0, 4) + '-' + displayDate.substring(4, 6) + '-' + displayDate.substring(6, 8) : displayDate}">2024-01-01</span>
+                        <span style="margin-left: 15px; font-size: 0.9em; font-weight: normal; color: #666;">
+                            (전체 <span th:text="${totalCount != null ? #numbers.formatInteger(totalCount, 0, 'COMMA') : 0}">0</span>건)
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 스크롤 가능한 리스트 영역 -->
+            <div class="scrollable-list-section">
+                <div class="stock-table-container">
+                    <table class="stock-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 250px;">종목명(종목코드)</th>
+                                <th class="text-right" style="width: 100px;">현재가</th>
+                                <th class="text-right" style="width: 80px;">전일대비</th>
+                                <th class="text-right" style="width: 80px;">등락률</th>
+                                <th class="text-right" style="width: 100px;">시가</th>
+                                <th class="text-right" style="width: 100px;">고가</th>
+                                <th class="text-right" style="width: 100px;">저가</th>
+                                <th class="text-right" style="width: 120px;">거래량</th>
+                                <th class="text-right" style="width: 120px;">거래대금(억)</th>
+                                <th class="text-right" style="width: 150px;">시가총액(억)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stock-tbody">
+                            <tr th:if="${stocks == null || #lists.isEmpty(stocks)}">
+                                <td colspan="10" class="text-center">데이터가 없습니다.</td>
+                            </tr>
+                            <tr th:if="${stocks != null && !#lists.isEmpty(stocks)}" 
+                                th:each="stock : ${stocks}">
+                                <td th:text="${stock?.itmsNm != null ? stock.itmsNm + '(' + (stock?.srtnCd != null ? stock.srtnCd : '') + ')' : ''}">종목명(종목코드)</td>
+                                <td class="text-right" 
+                                    th:classappend="${stock?.vs != null && stock.vs > 0 ? 'price-up' : (stock?.vs != null && stock.vs < 0 ? 'price-down' : 'price-unchanged')}"
+                                    th:text="${stock?.clpr != null ? #numbers.formatDecimal(stock.clpr, 0, 'COMMA', 0, 'POINT') : '0'}">0</td>
+                                <td class="text-right"
+                                    th:classappend="${stock?.vs != null && stock.vs > 0 ? 'price-up' : (stock?.vs != null && stock.vs < 0 ? 'price-down' : 'price-unchanged')}"
+                                    th:text="${stock?.vs != null ? (stock.vs >= 0 ? '+' : '') + #numbers.formatDecimal(stock.vs, 0, 'COMMA', 0, 'POINT') : '0'}">0</td>
+                                <td class="text-right"
+                                    th:classappend="${stock?.vsPercent != null && stock.vsPercent > 0 ? 'price-up' : (stock?.vsPercent != null && stock.vsPercent < 0 ? 'price-down' : 'price-unchanged')}"
+                                    th:text="${stock?.vsPercent != null ? (stock.vsPercent >= 0 ? '+' : '') + #numbers.formatDecimal(stock.vsPercent, 2, 'COMMA', 2, 'POINT') + '%' : '0.00%'}">0.00%</td>
+                                <td class="text-right" th:text="${stock?.mkp != null ? #numbers.formatDecimal(stock.mkp, 0, 'COMMA', 0, 'POINT') : '0'}">0</td>
+                                <td class="text-right" th:text="${stock?.hipr != null ? #numbers.formatDecimal(stock.hipr, 0, 'COMMA', 0, 'POINT') : '0'}">0</td>
+                                <td class="text-right" th:text="${stock?.lopr != null ? #numbers.formatDecimal(stock.lopr, 0, 'COMMA', 0, 'POINT') : '0'}">0</td>
+                                <td class="text-right" th:text="${stock?.trqu != null ? #numbers.formatInteger(stock.trqu, 0, 'COMMA') : '0'}">0</td>
+                                <td class="text-right" 
+                                    th:text="${stock?.trPrc != null && stock.trPrc != 0 ? #numbers.formatDecimal(stock.trPrc / 100000000.0, 2, 'COMMA', 2, 'POINT') : '0.00'}">0.00</td>
+                                <td class="text-right" 
+                                    th:text="${stock?.mrktTotAmt != null && stock.mrktTotAmt != 0 ? #numbers.formatDecimal(stock.mrktTotAmt / 100000000.0, 2, 'COMMA', 2, 'POINT') : '0.00'}">0.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // baseLayout.html의 JavaScript 함수들
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('menuToggleBtn');
+            const toggleContainer = document.getElementById('menuToggleContainer');
+            
+            sidebar.classList.toggle('collapsed');
+            
+            // 버튼 위치 및 아이콘 변경
+            if (sidebar.classList.contains('collapsed')) {
+                toggleContainer.style.left = '0px';
+                toggleBtn.innerHTML = '▶';
+                toggleContainer.title = '메뉴 열기';
+            } else {
+                toggleContainer.style.left = '280px';
+                toggleBtn.innerHTML = '◀';
+                toggleContainer.title = '메뉴 닫기';
+            }
+            
+            // sidebar 상태를 localStorage에 저장
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        }
+        
+        // sidebar 상태 저장
+        function saveSidebarState() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            }
+        }
+        
+        // sidebar 상태 복원
+        function restoreSidebarState() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('menuToggleBtn');
+            const toggleContainer = document.getElementById('menuToggleContainer');
+            
+            if (sidebar && toggleBtn && toggleContainer) {
+                const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+                if (isCollapsed) {
+                    sidebar.classList.add('collapsed');
+                    toggleContainer.style.left = '0px';
+                    toggleBtn.innerHTML = '▶';
+                    toggleContainer.title = '메뉴 열기';
+                } else {
+                    sidebar.classList.remove('collapsed');
+                    toggleContainer.style.left = '280px';
+                    toggleBtn.innerHTML = '◀';
+                    toggleContainer.title = '메뉴 닫기';
+                }
+            }
+        }
+        
+        // toggleMenu 함수는 menu.html에서 정의된 전역 함수를 사용합니다
+        
+        // 오늘 날짜로 조회
+        function loadTodayData() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayStr = year + '-' + month + '-' + day;
+            
+            document.getElementById('trading-date').value = todayStr;
+            // 폼 제출
+            document.querySelector('form').submit();
+        }
+        
+        // 페이지 로드 시 sidebar 상태 복원
+        document.addEventListener('DOMContentLoaded', function() {
+            restoreSidebarState();
+        });
+    </script>
+</body>
+</html>
+

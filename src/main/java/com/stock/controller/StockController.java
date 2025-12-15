@@ -151,6 +151,47 @@ public class StockController {
     }
     
     /**
+     * 코스피 거래일 정보 화면
+     */
+    @GetMapping("/analysis/kospi-daily")
+    public String kospiDaily(@RequestParam(required = false) String tradingDate, Model model) {
+        logger.info("코스피 거래일 정보 화면 요청: 거래일={}", tradingDate);
+        try {
+            // 날짜 형식 변환 (YYYY-MM-DD -> YYYYMMDD)
+            String formattedDate = tradingDate;
+            if (formattedDate != null && !formattedDate.trim().isEmpty()) {
+                // 하이픈 제거
+                formattedDate = formattedDate.replace("-", "");
+                // YYYYMMDD 형식 확인 (8자리)
+                if (formattedDate.length() != 8) {
+                    formattedDate = null; // 형식이 맞지 않으면 null로 설정
+                }
+            }
+            
+            List<Map<String, Object>> kospiStocks = stockDataService.getKospiDailyData(formattedDate);
+            model.addAttribute("stocks", kospiStocks != null ? kospiStocks : new java.util.ArrayList<>());
+            model.addAttribute("tradingDate", tradingDate);
+            
+            // 거래일이 있으면 그 날짜 표시, 없으면 첫 번째 종목의 거래일 표시
+            String displayDate = tradingDate;
+            if ((displayDate == null || displayDate.isEmpty()) && kospiStocks != null && !kospiStocks.isEmpty()) {
+                displayDate = (String) kospiStocks.get(0).getOrDefault("basDt", "");
+            }
+            model.addAttribute("displayDate", displayDate);
+            model.addAttribute("totalCount", kospiStocks != null ? kospiStocks.size() : 0);
+            
+            logger.info("코스피 거래일 정보 화면 반환: {}개 종목", kospiStocks != null ? kospiStocks.size() : 0);
+        } catch (Exception e) {
+            logger.error("코스피 거래일 정보 화면 로드 중 오류 발생", e);
+            model.addAttribute("stocks", new java.util.ArrayList<>());
+            model.addAttribute("tradingDate", tradingDate);
+            model.addAttribute("displayDate", tradingDate != null ? tradingDate : "");
+            model.addAttribute("totalCount", 0);
+        }
+        return "analysis/kospiDaily";
+    }
+    
+    /**
      * 주식 데이터를 가져오는 API 엔드포인트
      */
     @GetMapping("/api/stock/data")

@@ -414,5 +414,231 @@ public class StockDataService {
         
         return chartData;
     }
+    
+    /**
+     * 최근 거래일의 전체 종목 정보 가져오기 (코스피, 코스닥 포함)
+     * 코스피(mrktCtg=K)와 코스닥(mrktCtg=Q)를 각각 요청하여 합침
+     * @param tradingDate 거래일 (YYYYMMDD 형식, null이면 최근 거래일)
+     * @return 전체 종목 리스트 (코스피 + 코스닥)
+     */
+    public List<Map<String, Object>> getKospiDailyData(String tradingDate) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        
+        try {
+            // 코스피(mrktCtg=KOSPI) 조회
+            logger.info("코스피 거래일 정보 조회 시작: 거래일={}", tradingDate);
+            List<Map<String, Object>> kospiData = fetchMarketData(tradingDate, "KOSPI", "코스피");
+            
+            // 코스닥(mrktCtg=KOSDAQ) 조회
+            logger.info("코스닥 거래일 정보 조회 시작: 거래일={}", tradingDate);
+            List<Map<String, Object>> kosdaqData = fetchMarketData(tradingDate, "KOSDAQ", "코스닥");
+            
+            // 두 결과 합치기
+            // 두 결과를 합칠 때 거래량이 없는 종목은 제외
+            for (Map<String, Object> stock : kospiData) {
+                Long volume = 0L;
+                Object trquObj = stock.get("trqu");
+                if (trquObj instanceof Number) {
+                    volume = ((Number) trquObj).longValue();
+                } else if (trquObj != null) {
+                    try {
+                        volume = Long.parseLong(trquObj.toString().replace(",", "").trim());
+                    } catch (Exception ignored) {}
+                }
+                if (volume > 0) {
+                    result.add(stock);
+                }
+            }
+            for (Map<String, Object> stock : kosdaqData) {
+                Long volume = 0L;
+                Object trquObj = stock.get("trqu");
+                if (trquObj instanceof Number) {
+                    volume = ((Number) trquObj).longValue();
+                } else if (trquObj != null) {
+                    try {
+                        volume = Long.parseLong(trquObj.toString().replace(",", "").trim());
+                    } catch (Exception ignored) {}
+                }
+                if (volume > 0) {
+                    result.add(stock);
+                }
+            }
+            
+            // 시가총액 기준으로 정렬 (내림차순)
+            result.sort((a, b) -> {
+                Long marketCapA = 0L;
+                Long marketCapB = 0L;
+                
+                Object mrktTotAmtObjA = a.get("mrktTotAmt");
+                if (mrktTotAmtObjA instanceof Number) {
+                    marketCapA = ((Number) mrktTotAmtObjA).longValue();
+                } else if (mrktTotAmtObjA != null) {
+                    try {
+                        marketCapA = Long.parseLong(mrktTotAmtObjA.toString().replace(",", "").trim());
+                    } catch (Exception ignored) {}
+                }
+                
+                Object mrktTotAmtObjB = b.get("mrktTotAmt");
+                if (mrktTotAmtObjB instanceof Number) {
+                    marketCapB = ((Number) mrktTotAmtObjB).longValue();
+                } else if (mrktTotAmtObjB != null) {
+                    try {
+                        marketCapB = Long.parseLong(mrktTotAmtObjB.toString().replace(",", "").trim());
+                    } catch (Exception ignored) {}
+                }
+                
+                return marketCapB.compareTo(marketCapA);
+            });
+            
+            logger.info("거래일 정보 조회 완료: 코스피 {}개, 코스닥 {}개, 총 {}개 종목", kospiData.size(), kosdaqData.size(), result.size());
+        } catch (Exception e) {
+            logger.error("거래일 정보 조회 중 오류: {}", e.getMessage(), e);
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 특정 시장(mrktCtg)의 거래일 정보 가져오기
+     * @param tradingDate 거래일 (YYYYMMDD 형식, null이면 최근 거래일)
+     * @param mrktCtg 시장분류 코드 (K: 코스피, Q: 코스닥)
+     * @param marketName 시장명 (로깅용)
+     * @return 종목 리스트
+     */
+    private List<Map<String, Object>> fetchMarketData(String tradingDate, String mrktCls, String marketName) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        
+        try {
+            String encodedApiKey = URLEncoder.encode(publicDataApiKey, StandardCharsets.UTF_8.toString());
+
+            // numOfRows를 1000으로 하고, 전체 건수(page 단위) 순환 후 모두 합치는 방식
+            int numOfRows = 1000;
+            int pageNo = 1;
+            int totalCount = Integer.MAX_VALUE; // 최초엔 무한대로 설정
+            int loadedCount = 0;
+            List<Map<String, Object>> mergedResults = new ArrayList<>();
+
+            do {
+                String url = "https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo"
+                        + "?serviceKey=" + encodedApiKey
+                        + "&numOfRows=" + numOfRows
+                        + "&pageNo=" + pageNo
+                        + "&resultType=json"
+                        + "&mrktCls=" + mrktCls;
+
+                String resolvedTradingDate = tradingDate;
+                if (resolvedTradingDate == null || resolvedTradingDate.trim().isEmpty()) {
+                    // 오늘 날짜를 yyyyMMdd 형식으로 변환
+                    java.time.LocalDate now = java.time.LocalDate.now();
+                    java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd");
+                    resolvedTradingDate = now.format(formatter);
+                } else {
+                    resolvedTradingDate = resolvedTradingDate.trim();
+                }
+                url += "&basDt=" + resolvedTradingDate;
+
+                logger.info("{} API 호출: mrktCtg={}, 거래일={}, pageNo={}", marketName, mrktCls, tradingDate, pageNo);
+                ResponseEntity<String> apiResponse = restTemplate.getForEntity(url, String.class);
+                String responseBody = apiResponse.getBody();
+                if (apiResponse.getStatusCode().is2xxSuccessful() && responseBody != null) {
+                    JsonNode jsonNode = objectMapper.readTree(responseBody);
+                    JsonNode responseNode = jsonNode.path("response");
+                    JsonNode body = responseNode.path("body");
+                    JsonNode items = body.path("items");
+                    JsonNode item = items.path("item");
+
+                    // totalCount를 첫 페이지에서만 파악
+                    if (body.has("totalCount")) {
+                        totalCount = body.path("totalCount").asInt(totalCount);
+                    }
+
+                    // item이 배열인지 단일 객체인지 확인
+                    if (item.isArray()) {
+                        for (JsonNode stockItem : item) {
+                            if (stockItem.isNull() || stockItem.isMissingNode()) continue;
+                            Map<String, Object> stockData = parseStockItem(stockItem);
+                            if (stockData != null) {
+                                mergedResults.add(stockData);
+                            }
+                        }
+                    } else if (!item.isMissingNode() && !item.isNull()) {
+                        Map<String, Object> stockData = parseStockItem(item);
+                        if (stockData != null) {
+                            mergedResults.add(stockData);
+                        }
+                    }
+                } else {
+                    logger.error("{} API 호출 실패 - 상태: {}", marketName, apiResponse.getStatusCode());
+                    break;
+                }
+
+                loadedCount = mergedResults.size();
+                pageNo++;
+            } while (loadedCount < totalCount);
+
+            result.addAll(mergedResults);
+
+            logger.info("{} 조회 완료: {}개 종목", marketName, result.size());
+
+        } catch (Exception e) {
+            logger.error("{} 조회 중 오류: {}", marketName, e.getMessage(), e);
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 종목 데이터 파싱
+     * @param stockItem JSON 노드
+     * @return 종목 데이터 Map
+     */
+    private Map<String, Object> parseStockItem(JsonNode stockItem) {
+        try {
+            Map<String, Object> stockData = new HashMap<>();
+            
+            // 종목 기본 정보
+            stockData.put("srtnCd", stockItem.path("srtnCd").asText(""));
+            stockData.put("itmsNm", stockItem.path("itmsNm").asText(""));
+            stockData.put("mrktCtg", stockItem.path("mrktCtg").asText(""));
+            stockData.put("basDt", stockItem.path("basDt").asText(""));
+            
+            // 가격 정보 (빈 문자열 체크 추가)
+            String clpr = stockItem.path("clpr").asText("0").replace(",", "").trim();
+            String vs = stockItem.path("vs").asText("0").replace(",", "").trim();
+            String prdyClpr = stockItem.path("prdyClpr").asText("0").replace(",", "").trim();
+            String mkp = stockItem.path("mkp").asText("0").replace(",", "").trim();
+            String hipr = stockItem.path("hipr").asText("0").replace(",", "").trim();
+            String lopr = stockItem.path("lopr").asText("0").replace(",", "").trim();
+            
+            double currentPrice = clpr.isEmpty() ? 0.0 : Double.parseDouble(clpr);
+            double change = vs.isEmpty() ? 0.0 : Double.parseDouble(vs);
+            double previousClose = prdyClpr.isEmpty() ? 0.0 : Double.parseDouble(prdyClpr);
+            double openingPrice = mkp.isEmpty() ? 0.0 : Double.parseDouble(mkp);
+            double highPrice = hipr.isEmpty() ? 0.0 : Double.parseDouble(hipr);
+            double lowPrice = lopr.isEmpty() ? 0.0 : Double.parseDouble(lopr);
+            
+            stockData.put("clpr", currentPrice);
+            stockData.put("vs", change);
+            stockData.put("vsPercent", previousClose != 0 ? (change / previousClose) * 100 : 0);
+            stockData.put("prdyClpr", previousClose);
+            stockData.put("mkp", openingPrice);
+            stockData.put("hipr", highPrice);
+            stockData.put("lopr", lowPrice);
+            
+            // 거래량 정보
+            String trqu = stockItem.path("trqu").asText("0").replace(",", "").trim();
+            String trPrc = stockItem.path("trPrc").asText("0").replace(",", "").trim();
+            String mrktTotAmt = stockItem.path("mrktTotAmt").asText("0").replace(",", "").trim();
+            
+            stockData.put("trqu", trqu.isEmpty() ? 0L : Long.parseLong(trqu));
+            stockData.put("trPrc", trPrc.isEmpty() ? 0L : Long.parseLong(trPrc));
+            stockData.put("mrktTotAmt", mrktTotAmt.isEmpty() ? 0L : Long.parseLong(mrktTotAmt));
+            
+            return stockData;
+        } catch (Exception e) {
+            logger.error("종목 데이터 파싱 중 오류: {}", e.getMessage(), e);
+            return null;
+        }
+    }
 }
 
